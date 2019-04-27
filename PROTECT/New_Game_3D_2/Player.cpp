@@ -121,156 +121,14 @@ void Player::CharacterMove(Camera &_camera)
 	// 体力の上限
 	if (life >= PLAYER_LIFE_MAX) { life = PLAYER_LIFE_MAX; }
 
-	// ゲームが始まっててかつゲームクリアしていなければまたはゲームオ－バーではなければ
-	if (SceneGame::GetStart() && !SceneGame::GetGameClear() && !SceneGame::GetGameOver())
-	{
-		// 左移動
-		if (KEY_INPUT.GetKey(KEY_INPUT_A) == KEY_PRESSED || PAD_INPUT.GetPadInput("1P").ThumbLX <= -10000)
-		{
-			characterMove.dir.x = -1;
-		}
-		// 右移動
-		if (KEY_INPUT.GetKey(KEY_INPUT_D) == KEY_PRESSED || PAD_INPUT.GetPadInput("1P").ThumbLX >= 10000)
-		{
-			characterMove.dir.x = 1;
-		}
-		// うしろいどう
-		if (KEY_INPUT.GetKey(KEY_INPUT_S) == KEY_PRESSED || PAD_INPUT.GetPadInput("1P").ThumbLY <= -10000)
-		{
-			characterMove.dir.z = 1;
-		}
-		// 前移動
-		if (KEY_INPUT.GetKey(KEY_INPUT_W) == KEY_PRESSED || PAD_INPUT.GetPadInput("1P").ThumbLY >= 10000)
-		{
-			characterMove.dir.z = -1;
-		}
-	}
-
-	// 正規化
-	if (VSquareSize(characterMove.dir) != 0)
-	{
-		characterMove.dir = VNorm(characterMove.dir);
-	}
-
-	// 必殺技をしていなければ移動可能
-	if (!characterAtack.isUseDeathBlow)
-	{
-		// ベロシティ
-		velocity = VScale(characterMove.dir, PLAYER_SPEED);
-
-		// 移動更新
-		characterMove.pos = VAdd(characterMove.pos, PlayerMoveDir(velocity, _camera));
-	}
-	else
-	{
-		if (characterAtack.deathBlowAnimationCount > 0 && characterAtack.deathBlowAnimationCount <= USE_DEATHBLOW_COUNT / 2)
-		{
-			// ベロシティ
-			velocity = VScale(VGet(0, 0, 1), PLAYER_SPEED / 4);
-
-			// 移動更新
-			characterMove.pos = VAdd(characterMove.pos, PlayerMoveDir(velocity, _camera));
-		}
-	}
-
-	// 攻撃可能状態であれば カメラを近づける
-	if (characterAtack.isAtack)
-	{
-		playerTargetPos = VAdd(characterMove.pos, VScale(PlayerMoveDir(VGet(-1, 0, 0) , _camera), PLAYER_CAMERA_MAX));
-	}
-	else
-	{
-		// カメラが見るプレイヤーの先のポジション
-		playerTargetPos = characterMove.pos;
-	}
-
-	// カメラの向きに移動
-	if (SceneGame::GetGameClear())
-	{
-		// 向きを常に初期化
-		characterMove.dir = ZEROCLEAR;
-
-		characterMove.dir = PlayerMoveDir(characterMove.dir, _camera);
-	}
-	else if (characterMove.isMove && !characterAtack.isAtack)
-	{
-		characterMove.dir = PlayerMoveDir(characterMove.dir, _camera);
-	}
-	// 攻撃中であれば構える
-	else if (characterAtack.isAtack)
-	{
-		characterMove.dir = PlayerMoveDir(VSub(ZEROCLEAR, VNorm(_camera.GetDir())), _camera); 
-	}
-	// 動いていない場合はカメラの向こう側を見続ける
-	else
-	{
-		characterMove.dir = PlayerMoveDir(VSub(characterMove.dir, VNorm(_camera.GetDir())), _camera);
-	}
-
-
-	// 上下回転用
-	camDir = VSub(_camera.GetDir(), characterMove.dir);
-	// 向き変更
-	cameraAngle = vec2Radian(&VGet(0, -1, 0), &camDir);
-
-	// 攻撃をしていなければ向き更新
-	if (!characterAtack.isUseDeathBlow && !characterAtack.isAtack || SceneGame::GetGameClear())
-	{
-		// 向き変更
-		aimAngle = vec2Radian(&VGet(0, 0, -1), &characterMove.dir);
-
-		// 左右の回転
-		characterMove.angle.y = lerpRadian(characterMove.angle.y, aimAngle, PLAYER_MOVE_TURN);
-
-		// 上下の回転をなくす
-		characterMove.angle.x = lerpRadian(characterMove.angle.x, 0, 1.f);
-	}
-	// 攻撃中であればモデルの回転を上下と左右にする
-	else if(!characterAtack.isUseDeathBlow && characterAtack.isAtack)
-	{
-		// カメラの方向を向く
-		VECTOR camtraget = VNorm(VSub(characterMove.pos, Camera::GetCamPos()));
-		float camtragetY = atan2(camtraget.x, camtraget.z);
-
-		//float playerHorizontal = 0.0f;
-		//
-		//if (KEY_INPUT.GetKey(KEY_INPUT_A) == KEY_PRESSED || PAD_INPUT.GetPadInput("1P").ThumbLX <= -10000) { playerHorizontal = -0.1f; }
-		//if (KEY_INPUT.GetKey(KEY_INPUT_D) == KEY_PRESSED || PAD_INPUT.GetPadInput("1P").ThumbLX >= 10000)  { playerHorizontal = 0.1f; }
-
-		// 左右の回転
-		characterMove.angle.y = lerpRadian(characterMove.angle.y, (camtragetY + PI / 1.3f) /*+ playerHorizontal*/, PLAYER_ATACK_TURN);
-
-		// 上下の回転
-		characterMove.angle.x = lerpRadian(characterMove.angle.x, (cameraAngle - PI / 2.f), PLAYER_ATACK_TURN);
-	}
-
-	// 回転更新　かつゲームが始まっていれば
-	if (SceneGame::GetStart())
-	{
-		MV1SetRotationXYZ(modelHandle, characterMove.angle);
-	}
-
-	// 上限下限
-	if (characterMove.pos.x >= 310) { characterMove.pos.x = 310; }
-	if (characterMove.pos.x <= -310) { characterMove.pos.x = -310; }
-
-	if (characterMove.pos.z >= 250) { characterMove.pos.z = 250; }
-	if (characterMove.pos.z <= -420) { characterMove.pos.z = -420; }
-
-
-	// キャラクターが近づいたら範囲外に出さない壁を出す
-	if (characterMove.pos.x >= 250) { Stage::SetDangerTrans(0, 0.05f); }
-	else { Stage::SetDangerTrans(0, -0.05f); }
-	if (characterMove.pos.x <= -250) { Stage::SetDangerTrans(2, 0.05f); }
-	else { Stage::SetDangerTrans(2, -0.05f); }
-
-	if (characterMove.pos.z >= 200) { Stage::SetDangerTrans(1, 0.05f); }
-	else { Stage::SetDangerTrans(1, -0.05f); }
-	if (characterMove.pos.z <= -350) { Stage::SetDangerTrans(3, 0.05f); }
-	else { Stage::SetDangerTrans(3, -0.05f); }
-
-	// 範囲外出たときに
-	if (characterMove.pos.y <= -50) { characterMove.pos = PLAYER_INIT_POS; }
+	// プレイヤー移動処理
+	PlayerMoveProcess();
+	// プレイヤーの移動更新
+	PlayerMoveUpdate(_camera);
+	// プレイヤーの回転
+	PlayerRotation(_camera);
+	// プレイヤーを範囲外に出さない
+	PlayerOutOfRangeWall();
 
 	// ポジション更新
 	MV1SetPosition(modelHandle, characterMove.pos);
@@ -439,72 +297,201 @@ void Player::Animation()
 	// プレイヤーのエフェクト
 	EFFECT.UpdatePlayer(this);
 
-	// ゲームクリアしていなければまたはゲームオ－バーではなければ
-	if (SceneGame::GetGameClear() && !SceneGame::GetGameOver())
-	{
-		// 移動アニメーションの変更
-		totalTime = AnimationChange(playAnim, ANIMATION_WIN, modelHandle, animAttachIndex, totalTime);
-		//
-		playTime++;
-	}
-	else if (characterAtack.isUseDeathBlow && !characterJump.isJump)
-	{
-		// 攻撃アニメーションの変更
-		totalTime = AnimationChange(playAnim, ANIMATION_DEATHBLOW, modelHandle, animAttachIndex, totalTime);
-	}
-	// ジャンプ時
-	else if (characterJump.isJump)
-	{
-		// ジャンプアニメーションの変更
-		totalTime = AnimationChange(playAnim, ANIMATION_JUMP, modelHandle, animAttachIndex, totalTime);
-	}
-	else if (characterAtack.isAtack && !characterJump.isJump)
-	{
-		// 攻撃アニメーションの変更
-		totalTime = AnimationChange(playAnim, ANIMATION_ATACK, modelHandle, animAttachIndex, totalTime);
-	}
-	else if (characterMove.isMove && !characterAtack.isAtack)
-	{
-		// 移動アニメーションの変更
-		totalTime = AnimationChange(playAnim, ANIMATION_MOVE, modelHandle, animAttachIndex, totalTime);
-	}
-	else
-	{
-		playTime++;
-		// 待機アニメーションの変更
-		totalTime = AnimationChange(playAnim, ANIMATION_WAIT, modelHandle, animAttachIndex, totalTime);
-	}
+	// アニメーションフレーム最大処理
+	AnimationMaxFrame();
+	// アニメーション設定
+	AninmationConfiguration();
+	// アニメーション変更
+	AnimationConfigurationChange();
 
+	// アニメーション入れ込み							普通のタイム			構え
+	MV1SetAttachAnimTime(modelHandle, animAttachIndex, playTime + characterAtack.atackCount + deathBlowAnimationCount);
+}
+
+// キャラクターダメージ
+void Player::CharacterDamage()
+{
+	// ゆっくりダメージ
+	SlowDamage();
+}
+
+// カメラの向きを計算
+VECTOR Player::PlayerMoveDir(VECTOR _pos, Camera &_camera)
+{
+	VECTOR tmpPos;
+	float sinPram = sinf(_camera.GetRad());
+	float cosPram = cosf(_camera.GetRad());
+
+	tmpPos.x =  _pos.z * sinPram - _pos.x * cosPram;
+	tmpPos.y = 0;
+	tmpPos.z = _pos.x * sinPram + _pos.z * cosPram;
+
+	return tmpPos;
+}
+
+void Player::PlayerMoveProcess()
+{
 	// ゲームが始まっててかつゲームクリアしていなければまたはゲームオ－バーではなければ
 	if (SceneGame::GetStart() && !SceneGame::GetGameClear() && !SceneGame::GetGameOver())
 	{
-		// アニメーション
+		// 左移動
 		if (KEY_INPUT.GetKey(KEY_INPUT_A) == KEY_PRESSED || PAD_INPUT.GetPadInput("1P").ThumbLX <= -10000)
 		{
-			characterMove.isMove = true;
-			playTime++;
+			characterMove.dir.x = -1;
 		}
-		else if (KEY_INPUT.GetKey(KEY_INPUT_D) == KEY_PRESSED || PAD_INPUT.GetPadInput("1P").ThumbLX >= 10000)
+		// 右移動
+		if (KEY_INPUT.GetKey(KEY_INPUT_D) == KEY_PRESSED || PAD_INPUT.GetPadInput("1P").ThumbLX >= 10000)
 		{
-			characterMove.isMove = true;
-			playTime++;
+			characterMove.dir.x = 1;
 		}
-		else if (KEY_INPUT.GetKey(KEY_INPUT_S) == KEY_PRESSED || PAD_INPUT.GetPadInput("1P").ThumbLY <= -10000)
+		// うしろいどう
+		if (KEY_INPUT.GetKey(KEY_INPUT_S) == KEY_PRESSED || PAD_INPUT.GetPadInput("1P").ThumbLY <= -10000)
 		{
-			characterMove.isMove = true;
-			playTime++;
+			characterMove.dir.z = 1;
 		}
-		else if (KEY_INPUT.GetKey(KEY_INPUT_W) == KEY_PRESSED || PAD_INPUT.GetPadInput("1P").ThumbLY >= 10000)
+		// 前移動
+		if (KEY_INPUT.GetKey(KEY_INPUT_W) == KEY_PRESSED || PAD_INPUT.GetPadInput("1P").ThumbLY >= 10000)
 		{
-			characterMove.isMove = true;
-			playTime++;
+			characterMove.dir.z = -1;
 		}
-		else
+	}
+}
+
+// プレイヤーの移動更新
+void Player::PlayerMoveUpdate(Camera &_camera)
+{
+	// 正規化
+	if (VSquareSize(characterMove.dir) != 0)
+	{
+		characterMove.dir = VNorm(characterMove.dir);
+	}
+
+	// 必殺技をしていなければ移動可能
+	if (!characterAtack.isUseDeathBlow)
+	{
+		// ベロシティ
+		velocity = VScale(characterMove.dir, PLAYER_SPEED);
+
+		// 移動更新
+		characterMove.pos = VAdd(characterMove.pos, PlayerMoveDir(velocity, _camera));
+	}
+	else
+	{
+		if (characterAtack.deathBlowAnimationCount > 0 && characterAtack.deathBlowAnimationCount <= USE_DEATHBLOW_COUNT / 2)
 		{
-			characterMove.isMove = false;
+			// ベロシティ
+			velocity = VScale(VGet(0, 0, 1), PLAYER_SPEED / 4);
+
+			// 移動更新
+			characterMove.pos = VAdd(characterMove.pos, PlayerMoveDir(velocity, _camera));
 		}
 	}
 
+	// 攻撃可能状態であれば カメラを近づける
+	if (characterAtack.isAtack)
+	{
+		playerTargetPos = VAdd(characterMove.pos, VScale(PlayerMoveDir(VGet(-1, 0, 0), _camera), PLAYER_CAMERA_MAX));
+	}
+	else
+	{
+		// カメラが見るプレイヤーの先のポジション
+		playerTargetPos = characterMove.pos;
+	}
+
+	// カメラの向きに移動
+	if (SceneGame::GetGameClear())
+	{
+		// 向きを常に初期化
+		characterMove.dir = ZEROCLEAR;
+
+		characterMove.dir = PlayerMoveDir(characterMove.dir, _camera);
+	}
+	else if (characterMove.isMove && !characterAtack.isAtack)
+	{
+		characterMove.dir = PlayerMoveDir(characterMove.dir, _camera);
+	}
+	// 攻撃中であれば構える
+	else if (characterAtack.isAtack)
+	{
+		characterMove.dir = PlayerMoveDir(VSub(ZEROCLEAR, VNorm(_camera.GetDir())), _camera);
+	}
+	// 動いていない場合はカメラの向こう側を見続ける
+	else
+	{
+		characterMove.dir = PlayerMoveDir(VSub(characterMove.dir, VNorm(_camera.GetDir())), _camera);
+	}
+}
+
+// プレイヤーの回転
+void Player::PlayerRotation(Camera &_camera)
+{
+	// 上下回転用
+	camDir = VSub(_camera.GetDir(), characterMove.dir);
+	// 向き変更
+	cameraAngle = vec2Radian(&VGet(0, -1, 0), &camDir);
+
+	// 攻撃をしていなければ向き更新
+	if (!characterAtack.isUseDeathBlow && !characterAtack.isAtack || SceneGame::GetGameClear())
+	{
+		// 向き変更
+		aimAngle = vec2Radian(&VGet(0, 0, -1), &characterMove.dir);
+
+		// 左右の回転
+		characterMove.angle.y = lerpRadian(characterMove.angle.y, aimAngle, PLAYER_MOVE_TURN);
+
+		// 上下の回転をなくす
+		characterMove.angle.x = lerpRadian(characterMove.angle.x, 0, 1.f);
+	}
+	// 攻撃中であればモデルの回転を上下と左右にする
+	else if (!characterAtack.isUseDeathBlow && characterAtack.isAtack)
+	{
+		// カメラの方向を向く
+		VECTOR camtraget = VNorm(VSub(characterMove.pos, Camera::GetCamPos()));
+		float camtragetY = atan2(camtraget.x, camtraget.z);
+
+		// 左右の回転
+		characterMove.angle.y = lerpRadian(characterMove.angle.y, (camtragetY + PI / 1.3f) /*+ playerHorizontal*/, PLAYER_ATACK_TURN);
+
+		// 上下の回転
+		characterMove.angle.x = lerpRadian(characterMove.angle.x, (cameraAngle - PI / 2.f), PLAYER_ATACK_TURN);
+	}
+
+	// 回転更新　かつゲームが始まっていれば
+	if (SceneGame::GetStart())
+	{
+		MV1SetRotationXYZ(modelHandle, characterMove.angle);
+	}
+}
+
+// プレイヤーを範囲外に出さない
+void Player::PlayerOutOfRangeWall()
+{
+	// 上限下限
+	if (characterMove.pos.x >= 310) { characterMove.pos.x = 310; }
+	if (characterMove.pos.x <= -310) { characterMove.pos.x = -310; }
+
+	if (characterMove.pos.z >= 250) { characterMove.pos.z = 250; }
+	if (characterMove.pos.z <= -420) { characterMove.pos.z = -420; }
+
+	// キャラクターが近づいたら範囲外に出さない壁を出す
+	if (characterMove.pos.x >= 250) { Stage::SetDangerTrans(0, 0.05f); }
+	else { Stage::SetDangerTrans(0, -0.05f); }
+	if (characterMove.pos.x <= -250) { Stage::SetDangerTrans(2, 0.05f); }
+	else { Stage::SetDangerTrans(2, -0.05f); }
+
+	if (characterMove.pos.z >= 200) { Stage::SetDangerTrans(1, 0.05f); }
+	else { Stage::SetDangerTrans(1, -0.05f); }
+	if (characterMove.pos.z <= -350) { Stage::SetDangerTrans(3, 0.05f); }
+	else { Stage::SetDangerTrans(3, -0.05f); }
+
+	// 範囲外出たときに
+	if (characterMove.pos.y <= -50) { characterMove.pos = PLAYER_INIT_POS; }
+}
+
+
+// アニメーションフレーム最大処理
+void Player::AnimationMaxFrame()
+{
 	// 各アニメーションの最大フレーム設定
 	if (SceneGame::GetGameClear() && !SceneGame::GetGameOver())
 	{
@@ -547,28 +534,78 @@ void Player::Animation()
 			playTime = 6;
 		}
 	}
-
-	// アニメーション入れ込み							普通のタイム			構え
-	MV1SetAttachAnimTime(modelHandle, animAttachIndex, playTime + characterAtack.atackCount + deathBlowAnimationCount);
 }
 
-// キャラクターダメージ
-void Player::CharacterDamage()
+// アニメーション設定
+void Player::AninmationConfiguration()
 {
-	// ゆっくりダメージ
-	SlowDamage();
+	// ゲームクリアしていなければまたはゲームオ－バーではなければ
+	if (SceneGame::GetGameClear() && !SceneGame::GetGameOver())
+	{
+		// 移動アニメーションの変更
+		totalTime = AnimationChange(playAnim, ANIMATION_WIN, modelHandle, animAttachIndex, totalTime);
+		//
+		playTime++;
+	}
+	else if (characterAtack.isUseDeathBlow && !characterJump.isJump)
+	{
+		// 攻撃アニメーションの変更
+		totalTime = AnimationChange(playAnim, ANIMATION_DEATHBLOW, modelHandle, animAttachIndex, totalTime);
+	}
+	// ジャンプ時
+	else if (characterJump.isJump)
+	{
+		// ジャンプアニメーションの変更
+		totalTime = AnimationChange(playAnim, ANIMATION_JUMP, modelHandle, animAttachIndex, totalTime);
+	}
+	else if (characterAtack.isAtack && !characterJump.isJump)
+	{
+		// 攻撃アニメーションの変更
+		totalTime = AnimationChange(playAnim, ANIMATION_ATACK, modelHandle, animAttachIndex, totalTime);
+	}
+	else if (characterMove.isMove && !characterAtack.isAtack)
+	{
+		// 移動アニメーションの変更
+		totalTime = AnimationChange(playAnim, ANIMATION_MOVE, modelHandle, animAttachIndex, totalTime);
+	}
+	else
+	{
+		playTime++;
+		// 待機アニメーションの変更
+		totalTime = AnimationChange(playAnim, ANIMATION_WAIT, modelHandle, animAttachIndex, totalTime);
+	}
 }
 
-// カメラの向きを計算
-VECTOR Player::PlayerMoveDir(VECTOR _pos, Camera &_camera)
+// アニメーション変更
+void Player::AnimationConfigurationChange()
 {
-	VECTOR tmpPos;
-	float sinPram = sinf(_camera.GetRad());
-	float cosPram = cosf(_camera.GetRad());
-
-	tmpPos.x =  _pos.z * sinPram - _pos.x * cosPram;
-	tmpPos.y = 0;
-	tmpPos.z = _pos.x * sinPram + _pos.z * cosPram;
-
-	return tmpPos;
+	// ゲームが始まっててかつゲームクリアしていなければまたはゲームオ－バーではなければ
+	if (SceneGame::GetStart() && !SceneGame::GetGameClear() && !SceneGame::GetGameOver())
+	{
+		// アニメーション
+		if (KEY_INPUT.GetKey(KEY_INPUT_A) == KEY_PRESSED || PAD_INPUT.GetPadInput("1P").ThumbLX <= -10000)
+		{
+			characterMove.isMove = true;
+			playTime++;
+		}
+		else if (KEY_INPUT.GetKey(KEY_INPUT_D) == KEY_PRESSED || PAD_INPUT.GetPadInput("1P").ThumbLX >= 10000)
+		{
+			characterMove.isMove = true;
+			playTime++;
+		}
+		else if (KEY_INPUT.GetKey(KEY_INPUT_S) == KEY_PRESSED || PAD_INPUT.GetPadInput("1P").ThumbLY <= -10000)
+		{
+			characterMove.isMove = true;
+			playTime++;
+		}
+		else if (KEY_INPUT.GetKey(KEY_INPUT_W) == KEY_PRESSED || PAD_INPUT.GetPadInput("1P").ThumbLY >= 10000)
+		{
+			characterMove.isMove = true;
+			playTime++;
+		}
+		else
+		{
+			characterMove.isMove = false;
+		}
+	}
 }

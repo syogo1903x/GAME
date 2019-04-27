@@ -57,7 +57,24 @@ public:
 
 
 private:
-	VECTOR		PlayerMoveDir(VECTOR _pos, Camera &_camera);
+	// 内部処理関数
+	VECTOR	PlayerMoveDir(VECTOR _pos, Camera &_camera);
+	// プレイヤー移動処理
+	void PlayerMoveProcess();
+	// プレイヤーの移動更新
+	void	PlayerMoveUpdate(Camera &_camera);
+	// プレイヤーの回転
+	void	PlayerRotation(Camera &_camera);
+	// プレイヤーを範囲外に出さない
+	void	PlayerOutOfRangeWall();
+
+	// アニメーションフレーム最大処理
+	void AnimationMaxFrame();
+	// アニメーション設定
+	void AninmationConfiguration();
+	// アニメーション変更
+	void AnimationConfigurationChange();
+
 	float cameraAngle;
 	VECTOR camDir;
 	static float playerTragetCameraPos;
