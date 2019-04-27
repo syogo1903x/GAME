@@ -39,21 +39,83 @@ public:
 	void ShopUpdate(CharacterBase *_player);
 	void ShopDraw();
 
+	// 解放
 	void Release();
 
 	
 	// ゲッター
 	bool GetLetsShop() { return isDefenseShoppingMode; }
 
-	static int GetOpenShopEntry() { return nyutenShopAnimationCount; }
+	static int GetOpenShopEntry() { return joinShopAnimationCount; }
 	static int GetCloseShopEntry() { return godbyeShopAnimationCount; }
 
 private:
+	// 内部処理関数
+	// 
+	void ShopFade();
+	// 壁表示
+	void WallDraw();
+	// 攻撃ボール表示
+	void AttackBallDraw();
+	// 炎表示
+	void FireDraw();
+	// 兵士表示
+	void SoldierDraw();
+	// 防衛アイテムのHP表示
+	void HpDraw();
+
+	// 壁更新
+	void WallUpdate(CharacterBase *_player, CharacterBase *_small, CharacterBase *_medium, CharacterBase *_boss);
+	// 攻撃ボール更新
+	void AttackBallUpdate(CharacterBase *_player, CharacterBase *_small, CharacterBase *_medium, CharacterBase *_boss);
+	// 炎更新
+	void FireUpdate(CharacterBase *_player, CharacterBase *_small, CharacterBase *_medium, CharacterBase *_boss);
+	// 兵士更新
+	void SoldierUpdate(CharacterBase *_player, CharacterBase *_small, CharacterBase *_medium, CharacterBase *_boss);
+
+	// 説明更新
+	void DescriptionUpdate(CharacterBase *_player);
+	// ショップの壁更新
+	void WallShopUpdate(CharacterBase *_player);
+	// ショップの攻撃ボール更新
+	void AttackBallShopUpdate(CharacterBase *_player);
+	// ショップの炎更新
+	void FireShopUpdate(CharacterBase *_player);
+	// ショップの兵士更新
+	void SoldierShopUpdate(CharacterBase *_player);
+
+	// 防衛アイテムがない時の音
+	void ShopItemStopSound();
+
+	// 壁の設置
+	void WallInstallation(int _row, int _col);
+	// 攻撃ボールの設置
+	void AttackBallInstallation(int _row, int _col);
+	// 炎の設置
+	void FireInstallation(int _row, int _col);
+	// 兵士の設置
+	void SoldierInstallation(int _row, int _col);
+
+	// 説明表示
+	void DescriptionDraw();
+	// 壁2D表示
+	void WallDraw2D();
+	// 攻撃ボール2D表示
+	void AttackBallDraw2D();
+	// 炎2D表示
+	void FireDraw2D();
+	// 兵士2D表示
+	void SoldierDraw2D();
+
+	// お金の表示
+	void ShopMoneyDraw();
+
+
 	const static int ITEM_MAX = 50;
 	int openShopGraphHandle[10];
 	int closeShopGraphHandle[18];
 	bool isShopEntry;
-	static int nyutenShopAnimationCount;
+	static int joinShopAnimationCount;
 	static int godbyeShopAnimationCount;
 
 	int openShopAnimationCount;
@@ -95,10 +157,10 @@ private:
 
 	bool isDefenseShoppingMode;
 
-	int backGroundGraphHadle;
-	int woodGraphHamdle;
-	int buyGraphHandle;
-	int backGraphHandle;
+	int backGroundGraphHadle;			//
+	int woodGraphHamdle;				//
+	int buyGraphHandle;					//
+	int backGraphHandle;				//
 	int mapGraphHandle;					// 
 	int mapFrameGraphHandle;			// 
 	int backGroundGraphHandle[2];		// 
